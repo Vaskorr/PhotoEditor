@@ -6,6 +6,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
@@ -50,6 +51,8 @@ import java.io.File
 import java.io.IOException
 import java.lang.Exception
 import androidx.annotation.RequiresPermission
+import org.json.JSONObject
+import org.json.JSONTokener
 
 class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickListener,
     PropertiesBSFragment.Properties, ShapeBSFragment.Properties, EmojiListener, StickerListener,
@@ -66,11 +69,13 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
     private var mWonderFont: Typeface? = null
     private var mRvTools: RecyclerView? = null
     private var mRvFilters: RecyclerView? = null
-    private val mEditingToolsAdapter = EditingToolsAdapter(this)
+    private var mEditingToolsAdapter: EditingToolsAdapter? = null
     private val mFilterViewAdapter = FilterViewAdapter(this)
     private var mRootView: ConstraintLayout? = null
     private val mConstraintSet = ConstraintSet()
     private var mIsFilterVisible = false
+    private val colorDict = mapOf("Red" to Color.RED, "Green" to Color.GREEN, "Blue" to Color.BLUE)
+    private var configuration: JSONObject? = null
 
     @VisibleForTesting
     var mSaveImageUri: Uri? = null
@@ -80,6 +85,7 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         super.onCreate(savedInstanceState)
         makeFullScreen()
         setContentView(R.layout.activity_edit_image)
+        configuration = parseJsonConfig()
         initViews()
         handleIntentImage(mPhotoEditorView?.source)
         mWonderFont = Typeface.createFromAsset(assets, "beyond_wonderland.ttf")
@@ -93,6 +99,7 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         mShapeBSFragment?.setPropertiesChangeListener(this)
         val llmTools = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         mRvTools?.layoutManager = llmTools
+        mEditingToolsAdapter = EditingToolsAdapter(this, configuration!!.getJSONArray("names"))
         mRvTools?.adapter = mEditingToolsAdapter
         val llmFilters = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         mRvFilters?.layoutManager = llmFilters
@@ -146,6 +153,16 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         }
     }
 
+    fun parseJsonConfig(): JSONObject {
+        val mRvToolsLocal = mRvTools;
+        val file_name = "config.json"
+        val bufferReader = application.assets.open(file_name).bufferedReader()
+        val data = bufferReader.use {
+            it.readText()
+        }
+        return JSONTokener(data).nextValue() as JSONObject
+    }
+
     private fun initViews() {
         mPhotoEditorView = findViewById(R.id.photoEditorView)
         mTxtCurrentTool = findViewById(R.id.txtCurrentTool)
@@ -167,6 +184,8 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         imgClose.setOnClickListener(this)
         val imgShare: ImageView = findViewById(R.id.imgShare)
         imgShare.setOnClickListener(this)
+
+        colorDict[configuration!!.getString("color")]?.let { mRvTools?.setBackgroundColor(it) }
     }
 
     override fun onEditTextChangeListener(rootView: View?, text: String?, colorCode: Int) {

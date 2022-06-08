@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "com.burhanrashid52.photoediting"
         minSdkVersion 14
-        targetSdkVersion 31
+        targetSdkVersion 30
         versionCode 7
         versionName "2.0.0"
         multiDexEnabled = true
